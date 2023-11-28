@@ -22,8 +22,6 @@ def generate_chart_from_grouped_faces_folder(grouped_faces_folder: str, chart_fi
             count_bucket = faces_folders_by_count.get(len(all_images), [])
             count_bucket.append(FacesFolder(sub_path, all_images[0], len(all_images)))
             faces_folders_by_count[len(all_images)] = count_bucket
-    print(faces_folders_by_count)
-
     layout, width, height = generate_layout(faces_folders_by_count)
     make_chart(chart_filename, layout, width, height)
 
