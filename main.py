@@ -18,6 +18,9 @@ CROPPED_IMAGE_MATCH_THRESHOLD = .70
 
 SCALING_CACHE = {('examples\\11.27.23.png', 'examples/crops/logo.jpg'): (0.24, 0.9545839428901672), ('examples\\1701072300899279.jpg', 'examples/crops/logo.jpg'): (0.27, 0.9557238221168518), ('examples\\1701072740404357.png', 'examples/crops/logo.jpg'): (0.41, 0.9752677083015442), ('examples\\1701073342970426.jpg', 'examples/crops/logo.jpg'): (0.4, 0.9708191752433777), ('examples\\1701077950418456.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9892277121543884), ('examples\\1701082802511688.jpg', 'examples/crops/logo.jpg'): (0.45, 0.9766697287559509), ('examples\\1701083046739585.jpg', 'examples/crops/logo.jpg'): (0.48, 0.9917872548103333), ('examples\\1701084097242461.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9795607328414917), ('examples\\1701086451130592.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9853900074958801), ('examples\\1701088828336338.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9800499677658081), ('examples\\1701095601008634.jpg', 'examples/crops/logo.jpg'): (0.11, 0.6911693811416626), ('examples\\1701095601008634.jpg', 'examples/crops/icon_i.jpg'): (0.6458333333333334, 0.9866015315055847), ('examples\\1701096497026983.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9901890754699707)}
 
+class CroppedResultsException(ValueError):
+    pass
+
 
 def extract_and_group_faces_from_folder(folder: str):
     face_groups = {}
@@ -110,8 +113,11 @@ def search_for_faces(chart_image_path: str) -> list[cv2.typing.MatLike]:
 
     face_matches = []
     for strength, bounding_box in matches:
-        face_locations = face_locations_near_match(chart_img, scale, bounding_box)
-        [face_matches.append((strength, face_location)) for face_location in face_locations]
+        try:
+            face_locations = face_locations_near_match(chart_img, scale, bounding_box)
+            [face_matches.append((strength, face_location)) for face_location in face_locations]
+        except CroppedResultsException:
+            print(f"Image had cropped results: ", chart_image_path)
 
     just_faces_images = []
     for _strength, face_location in face_matches:
@@ -224,6 +230,8 @@ def compute_color_dist_column(image: cv2.typing.MatLike, color, x: int, y_start:
         if y < max_y and x < max_x:
             left_color = image[y, x]
             distances.append(np.linalg.norm(color - left_color))
+        else:
+            raise CroppedResultsException()
     return sorted(distances)[int(len(distances)/2)]
 
 
@@ -243,6 +251,8 @@ def compute_color_dist_row(image: cv2.typing.MatLike, color, x_start: int, x_end
         if y < max_y and x < max_x:
             left_color = image[y, x]
             distances.append(np.linalg.norm(color - left_color))
+        else:
+            raise CroppedResultsException()
     return sorted(distances)[int(len(distances)/2)]
 
 
