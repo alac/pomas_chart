@@ -33,7 +33,7 @@ def generate_layout(faces_folders_by_count: dict[int, list[FacesFolder]]) -> (li
     total_height = 0
 
     layout = []
-    for count in all_counts:
+    for count in reversed(all_counts):
         rows_for_count = []
         all_faces_for_count = faces_folders_by_count[count]
         while all_faces_for_count:
