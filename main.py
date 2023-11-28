@@ -128,7 +128,7 @@ def search_for_faces(chart_image_path: str) -> list[cv2.typing.MatLike]:
     while len(just_faces_images) > 15 and threshold > .7:
         # print("trimming")
         just_faces_images = deduplicate_faces(just_faces_images, threshold)
-        threshold -= .10
+        threshold -= .05
 
     _directory, filename = os.path.split(chart_image_path)
     if len(just_faces_images) != 15:
