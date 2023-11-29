@@ -295,10 +295,12 @@ def add_faces_to_groups(face_groups: dict, new_faces: list[cv2.typing.MatLike]):
             best_trainer_accuracy = 0
             best_pokemon_accuracy = 0
             for group_member in possible_group:
-                trainer_accuracy, pokemon_accuracy = match_face_to_reference(face_image, group_member)
+                trainer_accuracy, pokemon_accuracy = match_face_to_reference(face_image, group_member,
+                                                                             CROPPED_IMAGE_MATCH_THRESHOLD)
                 best_trainer_accuracy = max(trainer_accuracy, best_trainer_accuracy)
                 best_pokemon_accuracy = max(pokemon_accuracy, best_pokemon_accuracy)
-                trainer_accuracy, pokemon_accuracy = match_face_to_reference(group_member, face_image)
+                trainer_accuracy, pokemon_accuracy = match_face_to_reference(group_member, face_image,
+                                                                             CROPPED_IMAGE_MATCH_THRESHOLD)
                 best_trainer_accuracy = max(trainer_accuracy, best_trainer_accuracy)
                 best_pokemon_accuracy = max(pokemon_accuracy, best_pokemon_accuracy)
             if min(best_pokemon_accuracy, best_trainer_accuracy) > best_accuracy:
@@ -311,11 +313,12 @@ def add_faces_to_groups(face_groups: dict, new_faces: list[cv2.typing.MatLike]):
             face_groups[str(phash)] = [face_image]
 
 
-def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2.typing.MatLike) -> (float, float):
+def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2.typing.MatLike,
+                            threshold: float) -> (float, float):
     image_1_width, image_1_height, _ = face_image.shape
     cropped_face = face_image[int(image_1_height*.2):int(image_1_height*.9),
                               int(image_1_width*.1):int(image_1_width*.6)]
-    matches = find_location_cv_multi(reference_image, cropped_face, CROPPED_IMAGE_MATCH_THRESHOLD, max_count=1)
+    matches = find_location_cv_multi(reference_image, cropped_face, threshold, max_count=1)
     if len(matches) == 0:
         return 0, 0
     trainer_accuracy, _ = matches[0]
@@ -324,7 +327,7 @@ def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2
     measured_bounding_box = (int(33 * FACE_SCALE), int(16 * FACE_SCALE), int(19 * FACE_SCALE), int(16 * FACE_SCALE))
     pkm_x, pkm_y, pkm_w, pkm_h = measured_bounding_box
     cropped_pokemon = face_image[pkm_y: pkm_y+pkm_h, pkm_x: pkm_x+pkm_w]
-    matches = find_location_cv_multi(reference_image, cropped_pokemon, CROPPED_IMAGE_MATCH_THRESHOLD, max_count=1)
+    matches = find_location_cv_multi(reference_image, cropped_pokemon, threshold, max_count=1)
     if len(matches) != 0:
         pokemon_accuracy, _ = matches[0]
 
