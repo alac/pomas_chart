@@ -106,7 +106,7 @@ def search_for_faces(chart_image_path: str) -> list[cv2.typing.MatLike]:
 
     # we're using OpenCV to guess the locations. determine the ratio of our template image to the chart image.
     best_scale, best_match = 0, 0
-    for scaling_ref in [IMAGE_LOGO, IMAGE_ICON_I, IMAGE_BADGE]:
+    for scaling_ref in [IMAGE_TOP_CORNER, IMAGE_LOGO, IMAGE_ICON_I, IMAGE_BADGE]:
         test_scale, test_match = search_for_scaling(chart_image_path, chart_img, scaling_ref)
         if test_match > .94:
             best_scale, best_match = test_scale, test_match
