@@ -7,7 +7,7 @@ from PIL import Image
 import json
 
 from detect_image import find_location_cv_multi, write_debug_image
-from generate_chart import NORMALIZED_FACE_SIZE, generate_chart_from_grouped_faces_folder
+from generate_chart import NORMALIZED_FACE_SIZE, generate_chart_from_grouped_faces_folder, FACE_SCALE
 
 IMAGE_ICON_I = r"examples/crops/icon_i.jpg"
 IMAGE_LOGO = r"examples/crops/logo.jpg"
@@ -294,24 +294,13 @@ def add_faces_to_groups(face_groups: dict, new_faces: list[cv2.typing.MatLike]):
             possible_group = face_groups[group_key]
             best_trainer_accuracy = 0
             best_pokemon_accuracy = 0
-            # image matching is VERY weak to 1 pixel misalignment, so we try cropping images in both directions
             for group_member in possible_group:
-                crops = [(0, 0)]
-                for i in range(1, 3):
-                    crops.extend([(0, i), (i, 0)])
-                for x_crop, y_crop in crops:
-                    trainer_accuracy, pokemon_accuracy = match_face_to_reference(face_image,
-                                                                                 group_member,
-                                                                                 x_crop,
-                                                                                 y_crop)
-                    best_trainer_accuracy = max(trainer_accuracy, best_trainer_accuracy)
-                    best_pokemon_accuracy = max(pokemon_accuracy, best_pokemon_accuracy)
-                    trainer_accuracy, pokemon_accuracy = match_face_to_reference(group_member,
-                                                                                 face_image,
-                                                                                 x_crop,
-                                                                                 y_crop)
-                    best_trainer_accuracy = max(trainer_accuracy, best_trainer_accuracy)
-                    best_pokemon_accuracy = max(pokemon_accuracy, best_pokemon_accuracy)
+                trainer_accuracy, pokemon_accuracy = match_face_to_reference(face_image, group_member)
+                best_trainer_accuracy = max(trainer_accuracy, best_trainer_accuracy)
+                best_pokemon_accuracy = max(pokemon_accuracy, best_pokemon_accuracy)
+                trainer_accuracy, pokemon_accuracy = match_face_to_reference(group_member, face_image)
+                best_trainer_accuracy = max(trainer_accuracy, best_trainer_accuracy)
+                best_pokemon_accuracy = max(pokemon_accuracy, best_pokemon_accuracy)
             if min(best_pokemon_accuracy, best_trainer_accuracy) > best_accuracy:
                 best_accuracy = min(best_pokemon_accuracy, best_trainer_accuracy)
                 best_group = possible_group
@@ -330,11 +319,13 @@ def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2
         return 0, 0
     trainer_accuracy, _ = matches[0]
 
-    cropped_pokemon = face_image[int(image_1_height/2):image_1_height, int(image_1_height/2):image_1_height]
+    pokemon_accuracy = 0
+    measured_bounding_box = (int(33 * FACE_SCALE), int(16 * FACE_SCALE), int(19 * FACE_SCALE), int(16 * FACE_SCALE))
+    pkm_x, pkm_y, pkm_w, pkm_h = measured_bounding_box
+    cropped_pokemon = face_image[pkm_y: pkm_y+pkm_h, pkm_x: pkm_x+pkm_w]
     matches = find_location_cv_multi(reference_image, cropped_pokemon, CROPPED_IMAGE_MATCH_THRESHOLD, max_count=1)
-    if len(matches) == 0:
-        return 0, 0
-    pokemon_accuracy, _ = matches[0]
+    if len(matches) != 0:
+        pokemon_accuracy, _ = matches[0]
 
     return trainer_accuracy, pokemon_accuracy
 
