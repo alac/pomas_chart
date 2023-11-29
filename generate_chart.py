@@ -2,7 +2,8 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 from fonts.ttf import Roboto
 
-NORMALIZED_FACE_SIZE = (53*2, 33*2)
+FACE_SCALE = 1.0
+NORMALIZED_FACE_SIZE = (int(53 * FACE_SCALE), int(33 * FACE_SCALE))
 COUNT_DIMENSIONS = (100, 50)
 
 
@@ -66,7 +67,7 @@ def make_chart(filename: str, layout: list[tuple[int, list[str]]], total_width: 
                     chart.paste(i, (image_x, image_y))
                     image_x += NORMALIZED_FACE_SIZE[0]
             image_y += NORMALIZED_FACE_SIZE[1]
-        y = max(COUNT_DIMENSIONS[1], image_y)
+        y = max(y + COUNT_DIMENSIONS[1], image_y)
     chart.save(filename)
 
 
