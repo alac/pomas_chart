@@ -4,6 +4,7 @@ import numpy as np
 import imagehash
 import tqdm
 from PIL import Image
+import json
 
 from detect_image import find_location_cv_multi, write_debug_image
 from generate_chart import NORMALIZED_FACE_SIZE, generate_chart_from_grouped_faces_folder
@@ -16,7 +17,8 @@ IMAGE_BOTTOM_EDGE = r"examples/crops/bottom_edge.jpg"
 IMAGE_TOP_CORNER = r"examples/crops/top_corner.jpg"
 CROPPED_IMAGE_MATCH_THRESHOLD = .70
 
-SCALING_CACHE = {('examples\\11.27.23.png', 'examples/crops/logo.jpg'): (0.24, 0.9545839428901672), ('examples\\1701072300899279.jpg', 'examples/crops/logo.jpg'): (0.27, 0.9557238221168518), ('examples\\1701072740404357.png', 'examples/crops/logo.jpg'): (0.41, 0.9752677083015442), ('examples\\1701073342970426.jpg', 'examples/crops/logo.jpg'): (0.4, 0.9708191752433777), ('examples\\1701077950418456.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9892277121543884), ('examples\\1701082802511688.jpg', 'examples/crops/logo.jpg'): (0.45, 0.9766697287559509), ('examples\\1701083046739585.jpg', 'examples/crops/logo.jpg'): (0.48, 0.9917872548103333), ('examples\\1701084097242461.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9795607328414917), ('examples\\1701086451130592.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9853900074958801), ('examples\\1701088828336338.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9800499677658081), ('examples\\1701095601008634.jpg', 'examples/crops/logo.jpg'): (0.11, 0.6911693811416626), ('examples\\1701095601008634.jpg', 'examples/crops/icon_i.jpg'): (0.6458333333333334, 0.9866015315055847), ('examples\\1701096497026983.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9901890754699707), ('examples\\1701101543287257.png', 'examples/crops/logo.jpg'): (0.11, 0.7193714380264282), ('examples\\1701101543287257.png', 'examples/crops/icon_i.jpg'): (0.22916666666666666, 0.7486733198165894), ('examples\\1701070058174995.jpg', 'examples/crops/logo.jpg'): (0.64, 0.9781386852264404), ('examples\\1701102449516749.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9846853613853455), ('examples\\1701117017506504.jpg', 'examples/crops/logo.jpg'): (0.11, 0.7221410870552063), ('examples\\1701117017506504.jpg', 'examples/crops/icon_i.jpg'): (0.875, 0.7584322094917297), ('examples\\1701119265622362.jpg', 'examples/crops/logo.jpg'): (0.63, 0.9924598336219788), ('examples\\1701145089313195.jpg', 'examples/crops/logo.jpg'): (0.95, 0.988223671913147), ('examples\\1701151864433293.jpg', 'examples/crops/logo.jpg'): (0.31, 0.7476533651351929), ('examples\\1701151864433293.jpg', 'examples/crops/icon_i.jpg'): (0.25, 0.7200101613998413), ('examples\\1701131065108172.jpg', 'examples/crops/logo.jpg'): (0.38, 0.9879735708236694), ('examples\\1701123291132710.jpg', 'examples/crops/logo.jpg'): (0.48, 0.9873422384262085), ('examples\\1701114365939099.jpg', 'examples/crops/logo.jpg'): (0.47, 0.9851204752922058), ('examples\\1701122876126038.jpg', 'examples/crops/logo.jpg'): (0.48, 0.9790513515472412), ('examples\\1701101073280196.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9840387105941772), ('examples\\1701102440798892.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9876285791397095), ('examples\\1701103884752131.jpg', 'examples/crops/logo.jpg'): (0.5, 0.9866489171981812), ('examples\\1701113113359951.jpg', 'examples/crops/logo.jpg'): (0.34, 0.9655513167381287), ('examples\\1701101543287257.png', 'examples/crops/badge_check.jpg'): (0.6549707602339181, 0.977820873260498), ('examples\\1701117017506504.jpg', 'examples/crops/badge_check.jpg'): (1.0292397660818713, 0.6148614883422852), ('examples\\1701111162159990.jpg', 'examples/crops/logo.jpg'): (0.6966292134831461, 0.9806832075119019), ('examples\\1701151864433293.jpg', 'examples/crops/badge_check.jpg'): (0.9532163742690059, 0.9907421469688416)}
+SCALING_CACHE = {}
+SCALING_CACHE_FILE = "scaling_cache.json"
 
 
 class CroppedResultsException(ValueError):
@@ -24,8 +26,12 @@ class CroppedResultsException(ValueError):
 
 
 def extract_and_group_faces_from_folder(folder: str):
-    face_groups = {}
+    if os.path.exists(SCALING_CACHE_FILE):
+        with open(SCALING_CACHE_FILE, encoding="utf-8") as f:
+            global SCALING_CACHE
+            SCALING_CACHE = json.load(f)
 
+    face_groups = {}
     entries = os.scandir(folder)
     file_paths = [entry.path for entry in entries]
     sorted_file_paths = sorted(file_paths, key=os.path.getsize, reverse=True)
@@ -54,8 +60,10 @@ def extract_and_group_faces_from_folder(folder: str):
 
 def search_for_scaling(chart_image_path: str, chart_img: cv2.typing.MatLike, reference_image: str) -> (float, float):
     global SCALING_CACHE
-    if (chart_image_path, reference_image) in SCALING_CACHE:
-        return SCALING_CACHE[(chart_image_path, reference_image)]
+    scaling_cache_key = f"{chart_image_path}:{reference_image}"
+    if scaling_cache_key in SCALING_CACHE:
+        best_scale, best_match = SCALING_CACHE[scaling_cache_key]
+        return best_scale, best_match
 
     icon_img = cv2.imread(reference_image)
     original_height, original_width, _ = icon_img.shape
@@ -75,8 +83,10 @@ def search_for_scaling(chart_image_path: str, chart_img: cv2.typing.MatLike, ref
                 break
     print(f"best match found: {best_scale}, accuracy {best_match} for {chart_image_path}")
 
-    SCALING_CACHE[(chart_image_path, reference_image)] = best_scale, best_match
-    print("SCALING_CACHE", SCALING_CACHE)
+    SCALING_CACHE[scaling_cache_key] = best_scale, best_match
+    with open(SCALING_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(SCALING_CACHE, f)
+
     return best_scale, best_match
 
 
@@ -312,10 +322,9 @@ def add_faces_to_groups(face_groups: dict, new_faces: list[cv2.typing.MatLike]):
             face_groups[str(phash)] = [face_image]
 
 
-def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2.typing.MatLike, x_crop_size: int,
-                            y_crop_size: int) -> (float, float):
-    image_1_w, image_1_height, _ = face_image.shape
-    cropped_face = face_image[y_crop_size:image_1_height - 2 * y_crop_size, x_crop_size:image_1_w - 2 * x_crop_size]
+def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2.typing.MatLike) -> (float, float):
+    image_1_width, image_1_height, _ = face_image.shape
+    cropped_face = face_image[int(image_1_height*.2):int(image_1_height*.9), int(image_1_width*.1):int(image_1_width*.6)]
     matches = find_location_cv_multi(reference_image, cropped_face, CROPPED_IMAGE_MATCH_THRESHOLD, max_count=1)
     if len(matches) == 0:
         return 0, 0
