@@ -41,7 +41,7 @@ def extract_and_group_faces_from_folder(folder: str):
                 faces = search_for_faces(fp)
                 add_faces_to_groups(face_groups, faces)
             except Exception as e:
-                print("Errored while processing ", fp)
+                print("Error while processing ", fp)
                 raise e
 
     all_faces_folder = os.path.join("out", "all_faces")
@@ -212,7 +212,7 @@ def face_locations_near_match(chart_img: cv2.typing.MatLike, scale: float, match
                 int(x + scale * sx) + int(scale * sw/2),
                 int(y + scale * sy + scale * sh) + j)
             # print(f"dist1 {dist1} dist2 {dist2}")
-            # 45 was experimentally determined (30 breaks low res image, 50 breaks high res)
+            # 45 was experimentally determined (30 breaks low res image, 50 breaks high-res)
             if 45 >= dist2:
                 break
 
@@ -268,16 +268,16 @@ def compute_color_dist_row(image: cv2.typing.MatLike, color, x_start: int, x_end
 
 
 def deduplicate_faces(face_images: list[cv2.typing.MatLike], threshold: float) -> list[cv2.typing.MatLike]:
-    deduped_images = []
+    de_duped_images = []
     for face_image in face_images:
         has_match = False
-        for reference_faces in deduped_images:
+        for reference_faces in de_duped_images:
             matches = find_location_cv_multi(face_image, reference_faces, threshold, max_count=1)
             if len(matches):
                 has_match = True
         if not has_match:
-            deduped_images.append(face_image)
-    return deduped_images
+            de_duped_images.append(face_image)
+    return de_duped_images
 
 
 def add_faces_to_groups(face_groups: dict, new_faces: list[cv2.typing.MatLike]):
@@ -313,7 +313,8 @@ def add_faces_to_groups(face_groups: dict, new_faces: list[cv2.typing.MatLike]):
 
 def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2.typing.MatLike) -> (float, float):
     image_1_width, image_1_height, _ = face_image.shape
-    cropped_face = face_image[int(image_1_height*.2):int(image_1_height*.9), int(image_1_width*.1):int(image_1_width*.6)]
+    cropped_face = face_image[int(image_1_height*.2):int(image_1_height*.9),
+                              int(image_1_width*.1):int(image_1_width*.6)]
     matches = find_location_cv_multi(reference_image, cropped_face, CROPPED_IMAGE_MATCH_THRESHOLD, max_count=1)
     if len(matches) == 0:
         return 0, 0
