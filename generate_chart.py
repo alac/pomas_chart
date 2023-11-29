@@ -1,6 +1,8 @@
 import os
 from PIL import Image, ImageDraw, ImageFont
 from fonts.ttf import Roboto
+from typing import Optional
+import imagehash
 
 FACE_SCALE = 1.0
 NORMALIZED_FACE_SIZE = (int(53 * FACE_SCALE), int(33 * FACE_SCALE))
@@ -12,6 +14,13 @@ class FacesFolder:
         self.folder_path = folder_path
         self.image_path = image_path
         self.count = count
+        self._phash = None  # type: Optional[str]
+
+    def phash(self) -> str:
+        if not self._phash:
+            file_path = os.path.join(self.folder_path, self.image_path)
+            self._phash = str(imagehash.phash(Image.open(file_path), hash_size=6))
+        return self._phash
 
 
 def generate_chart_from_grouped_faces_folder(grouped_faces_folder: str, chart_filename: str):
@@ -37,6 +46,7 @@ def generate_layout(faces_folders_by_count: dict[int, list[FacesFolder]]) -> (li
     for count in reversed(all_counts):
         rows_for_count = []
         all_faces_for_count = faces_folders_by_count[count]
+        sorted(all_faces_for_count, key=lambda x: x.phash())
         while all_faces_for_count:
             current_row = []
             for face_folder in all_faces_for_count[:10]:
