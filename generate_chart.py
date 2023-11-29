@@ -4,7 +4,7 @@ from fonts.ttf import Roboto
 from typing import Optional
 import imagehash
 
-FACE_SCALE = 1.0
+FACE_SCALE = 1.2
 NORMALIZED_FACE_SIZE = (int(53 * FACE_SCALE), int(33 * FACE_SCALE))
 COUNT_DIMENSIONS = (100, 50)
 
@@ -110,4 +110,4 @@ def fit_text_to_height(text, height):
 
 
 if __name__ == "__main__":
-    generate_chart_from_grouped_faces_folder("out\group", "chart.jpg")
+    generate_chart_from_grouped_faces_folder(r"out\group", r"out\chart.png")

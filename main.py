@@ -5,6 +5,7 @@ import imagehash
 import tqdm
 from PIL import Image
 import json
+import shutil
 
 from detect_image import find_location_cv_multi, write_debug_image
 from generate_chart import NORMALIZED_FACE_SIZE, generate_chart_from_grouped_faces_folder, FACE_SCALE
@@ -26,6 +27,10 @@ class CroppedResultsException(ValueError):
 
 
 def extract_and_group_faces_from_folder(folder: str):
+    # reset the output folder
+    shutil.rmtree("out")
+    os.makedirs("out", exist_ok=True)
+
     if os.path.exists(SCALING_CACHE_FILE):
         with open(SCALING_CACHE_FILE, encoding="utf-8") as f:
             global SCALING_CACHE
@@ -335,5 +340,5 @@ def match_face_to_reference(face_image: cv2.typing.MatLike, reference_image: cv2
 
 
 if __name__ == '__main__':
-    extract_and_group_faces_from_folder("examples")
-    generate_chart_from_grouped_faces_folder("out\group", "chart.jpg")
+    extract_and_group_faces_from_folder(r"in")
+    generate_chart_from_grouped_faces_folder(r"out\group", r"out\chart.jpg")

@@ -232,5 +232,6 @@ fabric.properties
 
 # Manually added
 **/thumbs.db
+in/
 out/
 scaling_cache.json
