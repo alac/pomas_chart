@@ -24,6 +24,12 @@ class FacesFolder:
 
 
 def generate_chart_from_grouped_faces_folder(grouped_faces_folder: str, chart_filename: str):
+    """
+    Takes a 'grouped faces folder' and generates a chart from it.
+    :param grouped_faces_folder:
+    :param chart_filename:
+    :return:
+    """
     faces_folders_by_count = {}
     for sub_folder in os.listdir(grouped_faces_folder):
         sub_path = os.path.join(grouped_faces_folder, sub_folder)
@@ -32,15 +38,23 @@ def generate_chart_from_grouped_faces_folder(grouped_faces_folder: str, chart_fi
             count_bucket = faces_folders_by_count.get(len(all_images), [])
             count_bucket.append(FacesFolder(sub_path, all_images[0], len(all_images)))
             faces_folders_by_count[len(all_images)] = count_bucket
-    layout, width, height = generate_layout(faces_folders_by_count)
-    make_chart(chart_filename, layout, width, height)
-
-
-def generate_layout(faces_folders_by_count: dict[int, list[FacesFolder]]) -> (list[tuple[int, list[str]]], int, int):
     images_in_row = 10
+    layout = generate_layout(faces_folders_by_count, images_in_row)
+    make_chart(chart_filename, layout, images_in_row)
+
+
+def generate_layout(faces_folders_by_count: dict[int, list[FacesFolder]], images_in_row: int)\
+        -> list[tuple[int, list[list[str]]]]:
+    """
+    Takes the frequency dictionary and generates a 'layout' for the face images.
+    :param faces_folders_by_count:
+    :param images_in_row:
+    :return: layout: a list where each element is a tuple of a (COUNT, CONTENT_OF_ROWS)
+        the COUNT is the label for the row
+        the CONTENT_OF_ROWS is a list where each element describes a ROW
+        a ROW is a list[str], where each str is the path of an image
+    """
     all_counts = sorted([count for count in faces_folders_by_count])
-    total_width = COUNT_DIMENSIONS[0] + images_in_row*NORMALIZED_FACE_SIZE[0]
-    total_height = 0
 
     layout = []
     for count in reversed(all_counts):
@@ -49,16 +63,30 @@ def generate_layout(faces_folders_by_count: dict[int, list[FacesFolder]]) -> (li
         sorted(all_faces_for_count, key=lambda x: x.phash())
         while all_faces_for_count:
             current_row = []
-            for face_folder in all_faces_for_count[:10]:
+            for face_folder in all_faces_for_count[:images_in_row]:
                 current_row.append(os.path.join(face_folder.folder_path, face_folder.image_path))
             rows_for_count.append(current_row)
-            all_faces_for_count = all_faces_for_count[10:]
+            all_faces_for_count = all_faces_for_count[images_in_row:]
         layout.append((count, rows_for_count))
-        total_height += max(COUNT_DIMENSIONS[1], len(rows_for_count)*NORMALIZED_FACE_SIZE[1])
-    return layout, total_width, total_height
+    return layout
 
 
-def make_chart(filename: str, layout: list[tuple[int, list[str]]], total_width: int, total_height: int):
+def make_chart(filename: str, layout: list[tuple[int, list[list[str]]]], images_in_row: int):
+    """
+    arranges the chart elements on an image canvas and writes them to a file.
+    :param filename:
+    :param layout: a list where each element is a tuple of a (COUNT, CONTENT_OF_ROWS)
+        the COUNT is the label for the row
+        the CONTENT_OF_ROWS is a list where each element describes a ROW
+        a ROW is a list[str], where each str is the path of an image
+    :param images_in_row:
+    :return:
+    """
+    total_width = COUNT_DIMENSIONS[0] + images_in_row*NORMALIZED_FACE_SIZE[0]
+    total_height = 0
+    for _, image_rows in layout:
+        total_height += max(COUNT_DIMENSIONS[1], len(image_rows) * NORMALIZED_FACE_SIZE[1])
+
     chart = Image.new("RGB", (total_width, total_height), "white")
     chart_draw = ImageDraw.Draw(chart)
 
@@ -93,7 +121,6 @@ def get_font(fontsize):
 
 
 def fit_text_to_height(text, height):
-    # print(f"fit_text_to_height {text}, {height}")
     max_size = 1
     result = compute_height(max_size, text)
     while result < height:
